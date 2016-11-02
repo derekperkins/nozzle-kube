@@ -1,0 +1,71 @@
+apiVersion: v1
+kind: Service
+metadata: 
+  name: kong-app
+spec:
+  type: NodePort
+  ports:
+    - port: 8000
+      targetPort: 8000
+      name: http
+    - port: 8001
+      targetPort: 8001
+      name: admin
+  selector:
+    name: kong-app
+---
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: kong-app
+spec:
+  template:
+    metadata:
+      labels:
+        name: kong-app
+        tier: development
+    spec:
+      containers:
+        - name: kong-app
+          image: kong
+          env:
+            - name: KONG_DATABASE
+              value: cassandra
+            - name: KONG_CASSANDRA_CONTACT_POINTS
+              value: kong-database
+          ports:
+            - containerPort: 8000
+            - containerPort: 8001
+            - containerPort: 7946
+            - containerPort: 7946
+              protocol: UDP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: kong-database
+spec:
+  type: NodePort
+  ports:
+    - port: 9042
+      targetPort: 9042
+      nodePort: 30042
+  selector:
+    name: kong-database
+---
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: kong-database
+spec:
+  template:
+    metadata:
+      labels:
+        name: kong-database
+        tier: development
+    spec:
+      containers:
+        - name: kong-database
+          image: cassandra:2.2
+          ports:
+            - containerPort: 9042
